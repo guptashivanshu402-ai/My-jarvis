@@ -3,57 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>J.A.R.V.I.S. Final</title>
+    <title>J.A.R.V.I.S. Mark 85.8</title>
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Share Tech Mono', monospace; color: #00d2ff; }
-        #boot { position: absolute; inset: 0; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; cursor: pointer; text-align: center; }
+        #boot { position: absolute; inset: 0; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; cursor: pointer; text-align: center; border: 1px solid #00d2ff; }
         #hud { position: absolute; top: 20px; left: 20px; border-left: 2px solid #00d2ff; padding-left: 15px; pointer-events: none; }
-        #console { position: absolute; bottom: 30px; left: 20px; right: 20px; background: rgba(0,0,0,0.85); padding: 15px; border: 1px solid #00d2ff; font-size: 13px; color: #fff; border-radius: 5px; min-height: 80px; box-shadow: 0 0 15px rgba(0,210,255,0.2); }
+        #console { position: absolute; bottom: 30px; left: 20px; right: 20px; background: rgba(0,0,0,0.85); padding: 15px; border: 1px solid #00d2ff; font-size: 13px; color: #fff; border-radius: 5px; min-height: 80px; }
         #mic-status { position: fixed; bottom: 20px; right: 20px; width: 15px; height: 15px; border-radius: 50%; background: #333; }
         .active-mic { background: #ff0000 !important; box-shadow: 0 0 15px #ff0000 !important; }
-        #err-log { position: absolute; top: 10px; right: 10px; font-size: 10px; color: #ff3333; text-align: right; }
+        #core-log { position: absolute; top: 10px; right: 10px; font-size: 10px; color: #00d2ff; opacity: 0.5; }
     </style>
 </head>
 <body>
 
     <div id="boot" onclick="bootJarvis()">
-        <div style="border: 3px solid #00d2ff; padding: 40px; border-radius: 50%; font-size: 50px; box-shadow: 0 0 30px #00d2ff; margin-bottom: 20px;">◎</div>
-        <div style="letter-spacing: 5px; font-weight: bold;">ESTABLISH NEURAL LINK</div>
-        <p style="font-size: 10px; opacity: 0.5; margin-top: 15px;">STARK INDUSTRIES v.2026.02</p>
+        <div style="border: 2px solid #00d2ff; padding: 40px; border-radius: 50%; font-size: 50px; box-shadow: 0 0 30px #00d2ff; margin-bottom: 20px;">◎</div>
+        <div style="letter-spacing: 5px;">ESTABLISH LINK</div>
     </div>
 
     <div id="hud">
-        <div style="font-size: 26px; letter-spacing: 5px; font-weight: bold; text-shadow: 0 0 10px #00d2ff;">J.A.R.V.I.S.</div>
+        <div style="font-size: 26px; letter-spacing: 5px; font-weight: bold;">J.A.R.V.I.S.</div>
         <div id="st-text">SYSTEM: STANDBY</div>
-        <div id="bat-text">BATT: --%</div>
     </div>
 
-    <div id="err-log">CORE: DISCONNECTED</div>
+    <div id="core-log">MARK 85.8</div>
     <div id="console">> Awaiting Secure Connection...</div>
     <div id="mic-status"></div>
 
     <script type="module">
         import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 
-        // --- THE NEW NEURAL LINK ---
         const API_KEY = "AIzaSyBoJX57J3-mTHUySVZIYVXZWcJvMERNZBA"; 
+        const models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-pro"];
 
         async function talkToJarvis(prompt) {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
-            const response = await fetch(url, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: `You are JARVIS. Respond in very short witty Hinglish. Call me Sir. Question: ${prompt}` }] }]
-                })
-            });
-            const data = await response.json();
-            if (data.error) throw new Error(data.error.message);
-            return data.candidates[0].content.parts[0].text;
+            for (let modelName of models) {
+                try {
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${API_KEY}`;
+                    const res = await fetch(url, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: `You are JARVIS. Answer in short witty Hinglish. Always call me Sir. Prompt: ${prompt}` }] }]
+                        })
+                    });
+                    const data = await res.json();
+                    if (data.error) continue; // Try next model if this one fails
+                    document.getElementById('core-log').innerText = `CORE: ${modelName.toUpperCase()}`;
+                    return data.candidates[0].content.parts[0].text;
+                } catch (e) { continue; }
+            }
+            throw new Error("All cores restricted.");
         }
 
-        // --- 3D PARTICLE CORE ---
+        // --- VISUAL ENGINE ---
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -64,7 +68,7 @@
         function animate() { requestAnimationFrame(animate); core.rotation.y += 0.005; renderer.render(scene, camera); }
         animate();
 
-        // --- MASTER BRAIN LOGIC ---
+        // --- BRAIN ENGINE ---
         window.bootJarvis = () => {
             document.getElementById('boot').style.display = 'none';
             const synth = window.speechSynthesis;
@@ -81,27 +85,25 @@
             recognition.onstart = () => {
                 document.getElementById('mic-status').classList.add('active-mic');
                 document.getElementById('st-text').innerText = "SYSTEM: LISTENING";
-                document.getElementById('err-log').innerText = "CORE: SYNCHRONIZED";
             };
 
             recognition.onresult = async (event) => {
-                const heard = event.results[event.results.length - 1][0].transcript.toLowerCase();
+                const heard = event.results[event.results.length - 1][0].transcript;
                 document.getElementById('console').innerText = "> HEARD: " + heard;
                 document.getElementById('st-text').innerText = "SYSTEM: THINKING";
 
                 try {
-                    const responseText = await talkToJarvis(heard);
-                    say(responseText);
+                    const reply = await talkToJarvis(heard);
+                    say(reply);
                     document.getElementById('st-text').innerText = "SYSTEM: ONLINE";
                 } catch (err) {
-                    document.getElementById('err-log').innerText = "ERR: " + err.message;
-                    say("Sir, signal interference detected. Check the red log.");
+                    document.getElementById('console').innerText = "> ERROR: " + err.message;
+                    say("Sir, the neural link is reporting a 403 restriction. Please check your project settings.");
                 }
             };
 
             recognition.start();
-            say("All systems operational. New neural link established. I am ready, Sir.");
-            navigator.getBattery?.().then(b => document.getElementById('bat-text').innerText = `BATT: ${Math.round(b.level*100)}%`);
+            say("Online and operational, Sir. Systems have been re-calibrated.");
         };
     </script>
 </body>
