@@ -7,30 +7,30 @@
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Share Tech Mono', monospace; color: #00d2ff; }
-        #boot { position: absolute; inset: 0; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; cursor: pointer; text-shadow: 0 0 10px #00d2ff; border: 2px solid #00d2ff; }
+        #boot { position: absolute; inset: 0; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; cursor: pointer; border: 2px solid #00d2ff; text-align: center; }
         #hud { position: absolute; top: 20px; left: 20px; z-index: 10; border-left: 2px solid #00d2ff; padding-left: 15px; pointer-events: none; }
-        #console { position: absolute; bottom: 80px; left: 20px; font-size: 13px; color: #fff; background: rgba(0,0,0,0.6); padding: 10px; max-width: 85%; pointer-events: none; border-radius: 5px; border: 1px solid #00d2ff; }
+        #console { position: absolute; bottom: 80px; left: 20px; font-size: 13px; color: #fff; background: rgba(0,0,0,0.7); padding: 12px; max-width: 85%; pointer-events: none; border-radius: 5px; border: 1px solid #00d2ff; }
         #mic-status { position: fixed; bottom: 20px; right: 20px; display: flex; align-items: center; gap: 10px; }
         #mic-bulb { width: 14px; height: 14px; border-radius: 50%; background: #333; transition: 0.3s; }
         .active-mic { background: #ff0000 !important; box-shadow: 0 0 15px #ff0000; }
-        canvas { display: block; }
     </style>
 </head>
 <body>
 
     <div id="boot" onclick="bootJarvis()">
         <div style="border: 2px solid #00d2ff; padding: 40px; border-radius: 50%; font-size: 40px; margin-bottom: 20px;">◎</div>
-        <p>TAP TO ESTABLISH NEURAL LINK</p>
+        <p>TAP TO INITIALIZE NEURAL LINK</p>
+        <p style="font-size: 10px; opacity: 0.5;">SECURE STARK PROTOCOL 2026</p>
     </div>
 
     <div id="hud">
         <div style="font-size: 26px; letter-spacing: 5px; font-weight: bold;">J.A.R.V.I.S.</div>
         <div id="st-text">SYSTEM: STANDBY</div>
         <div id="bat-display">BATTERY: --%</div>
-        <div id="weather-display">ENV: CONNECTING...</div>
+        <div id="weather-display">ENV: ONLINE</div>
     </div>
 
-    <div id="console">> Awaiting Voice Authentication...</div>
+    <div id="console">> Awaiting Authentication...</div>
 
     <div id="mic-status">
         <span id="mic-label">MIC SLEEP</span>
@@ -50,29 +50,24 @@
         import * as THREE from 'three';
         import { GoogleGenerativeAI } from "@google/generative-ai";
 
-        // --- MASTER CONFIGURATION ---
+        // --- MASTER KEY ---
         const GEMINI_KEY = "AIzaSyCIAHOM8pqHqkHxxs2YPYUVtYdlqt3_2II"; 
-        const WEATHER_KEY = "YOUR_OPENWEATHER_KEY"; // Get free from openweathermap.org
-        const NEWS_KEY = "YOUR_GNEWS_KEY"; // Get free from gnews.io
-        const CITY = "Delhi"; 
-
-        // --- STABLE AI SETUP (PATCHED) ---
-const genAI = new GoogleGenerativeAI(GEMINI_KEY);
-const aiModel = genAI.getGenerativeModel({ 
-    model: "gemini-1.5-flash",
-    systemInstruction: "You are JARVIS. Answer in very short, witty Hinglish. Address the user as Sir.",
-    // This part prevents the 'Interference' error by disabling strict filters
-    safetySettings: [
-        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
-    ]
-});
         
+        const genAI = new GoogleGenerativeAI(GEMINI_KEY);
+        const aiModel = genAI.getGenerativeModel({ 
+            model: "gemini-1.5-flash",
+            systemInstruction: "You are JARVIS. Answer in short, witty Hinglish. Address the user as Sir. If asked about status, say systems are optimal.",
+            // PATCH: Threshold set to BLOCK_ONLY_HIGH to prevent 'Interference' errors
+            safetySettings: [
+                { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_ONLY_HIGH" },
+                { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_ONLY_HIGH" },
+                { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_ONLY_HIGH" },
+                { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_ONLY_HIGH" }
+            ]
+        });
 
-        // --- 3D PARTICLE CORE ---
-        const n = 18000;
+        // --- 3D ENGINE ---
+        const n = 15000;
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -84,9 +79,9 @@ const aiModel = genAI.getGenerativeModel({
         const targetArr = new Float32Array(n * 3);
         for(let i=0; i<n*3; i++) posArr[i] = (Math.random()-0.5)*80;
         geo.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
-        const mat = new THREE.PointsMaterial({ size: 0.06, color: 0x00d2ff, blending: THREE.AdditiveBlending });
-        const corePoints = new THREE.Points(geo, mat);
-        scene.add(corePoints);
+        const mat = new THREE.PointsMaterial({ size: 0.05, color: 0x00d2ff, blending: THREE.AdditiveBlending });
+        const core = new THREE.Points(geo, mat);
+        scene.add(core);
         camera.position.z = 25;
 
         window.morph = (shape) => {
@@ -97,17 +92,7 @@ const aiModel = genAI.getGenerativeModel({
                     t[i*3] = 0.4 * (16 * Math.pow(Math.sin(a), 3));
                     t[i*3+1] = 0.4 * (13 * Math.cos(a) - 5 * Math.cos(2*a) - 2 * Math.cos(3*a) - Math.cos(4*a));
                     t[i*3+2] = (Math.random()-0.5)*2;
-                } else if (shape === 'saturn') {
-                    if (i < n * 0.4) {
-                        const phi = Math.acos(-1 + (2 * i) / 7200), theta = Math.sqrt(7200 * Math.PI) * phi;
-                        t[i*3] = 5*Math.cos(theta)*Math.sin(phi); t[i*3+1] = 5*Math.sin(theta)*Math.sin(phi); t[i*3+2] = 5*Math.cos(phi);
-                    } else {
-                        const r = 9 + Math.random()*4, a = Math.random()*6.28;
-                        t[i*3] = r*Math.cos(a); t[i*3+1] = (Math.random()-0.5); t[i*3+2] = r*Math.sin(a);
-                    }
-                } else if (shape === 'explode') {
-                    t[i*3] *= 10; t[i*3+1] *= 10; t[i*3+2] *= 10;
-                } else { // Sphere
+                } else {
                     const phi = Math.acos(-1 + (2 * i) / n), theta = Math.sqrt(n * Math.PI) * phi;
                     t[i*3] = 8*Math.cos(theta)*Math.sin(phi); t[i*3+1] = 8*Math.sin(theta)*Math.sin(phi); t[i*3+2] = 8*Math.cos(phi);
                 }
@@ -120,12 +105,12 @@ const aiModel = genAI.getGenerativeModel({
             const p = geo.attributes.position.array;
             for (let i = 0; i < n * 3; i++) p[i] += (targetArr[i] - p[i]) * 0.1;
             geo.attributes.position.needsUpdate = true;
-            corePoints.rotation.y += 0.003;
+            core.rotation.y += 0.003;
             renderer.render(scene, camera);
         }
         animate();
 
-        // --- JARVIS LOGIC ---
+        // --- JARVIS AI ---
         window.bootJarvis = () => {
             document.getElementById('boot').style.display = 'none';
             const synth = window.speechSynthesis;
@@ -134,8 +119,9 @@ const aiModel = genAI.getGenerativeModel({
             recognition.continuous = true;
 
             const say = (txt) => {
+                synth.cancel();
                 const u = new SpeechSynthesisUtterance(txt);
-                u.lang = 'hi-IN'; u.pitch = 0.85; u.rate = 1.0;
+                u.lang = 'hi-IN'; u.pitch = 0.8;
                 synth.speak(u);
                 document.getElementById('console').innerText = "> JARVIS: " + txt;
             };
@@ -151,55 +137,34 @@ const aiModel = genAI.getGenerativeModel({
                 let heard = event.results[event.results.length-1][0].transcript.toLowerCase().trim();
                 document.getElementById('console').innerText = "> HEARD: " + heard;
 
-                // 1. SYSTEM COMMANDS
-                if (heard.match(/(red|dil|heart|रेड|लाल)/)) {
+                if (heard.match(/(red|dil|heart|लाल)/)) {
                     window.morph('heart'); mat.color.set(0xff0000);
                     say("Red alert mode engaged, sir.");
-                }
-                else if (heard.match(/(saturn|planet|shani|शनि)/)) {
-                    window.morph('saturn'); mat.color.set(0x00d2ff);
-                    say("Displaying Saturn mapping.");
-                }
-                else if (heard.match(/(blast|boom|dhamaaka|धमाका)/)) {
-                    window.morph('explode'); say("Boom!");
-                    setTimeout(() => window.morph('sphere'), 2000);
-                }
-                else if (heard.match(/(status|battery|हालत|बैटरी)/)) {
-                    const bat = await navigator.getBattery?.();
-                    say(`Battery level is at ${Math.round(bat.level * 100)} percent, sir.`);
-                }
-                else if (heard.match(/(stop|chup|बस|शांत)/)) {
+                } 
+                else if (heard.match(/(stop|chup|बस|चुप)/)) {
                     synth.cancel();
-                    document.getElementById('console').innerText = "> SPEECH ABORTED";
                 }
-                else if (heard.includes("search") || heard.includes("सर्च")) {
-                    let q = heard.replace(/search|सर्च/g, "").trim();
-                    window.open(`https://google.com/search?q=${q}`, "_blank");
-                    say(`Searching my records for ${q}.`);
-                }
-                else if (heard.match(/(reset|normal|sphere|वापस)/)) {
+                else if (heard.match(/(reset|sphere|वापस)/)) {
                     window.morph('sphere'); mat.color.set(0x00d2ff);
-                    say("Restoring system defaults.");
+                    say("Restoring sphere configuration.");
                 }
-
-                // 2. AI INTELLIGENCE (FALLBACK)
                 else {
                     document.getElementById('st-text').innerText = "JARVIS: THINKING...";
                     try {
                         const result = await aiModel.generateContent(heard);
-                        const aiResp = result.response.text();
-                        say(aiResp);
+                        const response = await result.response;
+                        say(response.text());
                         document.getElementById('st-text').innerText = "JARVIS: ONLINE";
                     } catch (e) {
-                        say("Sir, my neural link is experiencing interference.");
+                        say("Sir, there is a minor glitch in the neural link. Try again.");
+                        console.error(e);
                     }
                 }
             };
 
             recognition.start();
-            say("Namaste sir. Mark eighty-five online. Main aapki kya madad kar sakta hoon?");
+            say("Systems initialized. Mark eighty-five is ready. Main aapki kya madad kar sakta hoon?");
             
-            // Battery Update
             navigator.getBattery?.().then(b => {
                 document.getElementById('bat-display').innerText = `BATTERY: ${Math.round(b.level*100)}%`;
             });
