@@ -56,12 +56,20 @@
         const NEWS_KEY = "YOUR_GNEWS_KEY"; // Get free from gnews.io
         const CITY = "Delhi"; 
 
-        // AI SETUP
-        const genAI = new GoogleGenerativeAI(GEMINI_KEY);
-        const aiModel = genAI.getGenerativeModel({ 
-            model: "gemini-1.5-flash",
-            systemInstruction: "You are JARVIS, a highly advanced AI assistant. You are witty, polite, and loyal to Sir. Speak in a mix of English and Hindi (Hinglish). Keep answers short and professional."
-        });
+        // --- STABLE AI SETUP (PATCHED) ---
+const genAI = new GoogleGenerativeAI(GEMINI_KEY);
+const aiModel = genAI.getGenerativeModel({ 
+    model: "gemini-1.5-flash",
+    systemInstruction: "You are JARVIS. Answer in very short, witty Hinglish. Address the user as Sir.",
+    // This part prevents the 'Interference' error by disabling strict filters
+    safetySettings: [
+        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+    ]
+});
+        
 
         // --- 3D PARTICLE CORE ---
         const n = 18000;
