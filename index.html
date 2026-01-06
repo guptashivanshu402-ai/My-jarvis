@@ -3,48 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>J.A.R.V.I.S. Final Build</title>
+    <title>J.A.R.V.I.S. Mark 85</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: monospace; color: #00d2ff; }
-        #boot { position: absolute; inset: 0; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; border: 2px solid #00d2ff; cursor: pointer; }
-        #hud { position: absolute; top: 20px; left: 20px; border-left: 2px solid #00d2ff; padding-left: 10px; }
-        #console { position: absolute; bottom: 80px; left: 20px; background: rgba(0,0,0,0.8); padding: 10px; border: 1px solid #00d2ff; max-width: 80%; font-size: 12px; }
-        #mic-bulb { position: fixed; bottom: 20px; right: 20px; width: 20px; height: 20px; border-radius: 50%; background: #333; transition: 0.3s; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Share Tech Mono', monospace; color: #00d2ff; }
+        #boot { position: absolute; inset: 0; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; cursor: pointer; border: 2px solid #00d2ff; }
+        #hud { position: absolute; top: 20px; left: 20px; border-left: 2px solid #00d2ff; padding-left: 15px; }
+        #console { position: absolute; bottom: 40px; left: 20px; font-size: 14px; color: #fff; background: rgba(0,0,0,0.8); padding: 15px; max-width: 85%; border: 1px solid #00d2ff; }
+        #mic-bulb { position: fixed; bottom: 20px; right: 20px; width: 15px; height: 15px; border-radius: 50%; background: #222; }
         .active-mic { background: #ff0000 !important; box-shadow: 0 0 15px #ff0000; }
     </style>
 </head>
 <body>
+
     <div id="boot" onclick="bootJarvis()">
-        <div style="font-size: 60px;">◎</div>
-        <p>TAP TO INITIALIZE NEURAL LINK</p>
+        <div style="font-size: 50px; margin-bottom: 20px;">◎</div>
+        <b>INITIALIZE NEURAL LINK</b>
     </div>
-    <div id="hud"><b>J.A.R.V.I.S.</b><div id="status">STATUS: STANDBY</div></div>
+
+    <div id="hud">
+        <div style="font-size: 24px; font-weight: bold;">J.A.R.V.I.S.</div>
+        <div id="st-text">SYSTEM: STANDBY</div>
+        <div id="bat-text">BATT: --%</div>
+    </div>
+
     <div id="console">> Awaiting Authentication...</div>
     <div id="mic-bulb"></div>
 
-    <script type="importmap">
-    { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "@google/generative-ai": "https://esm.run/@google/generative-ai" } }
-    </script>
-
     <script type="module">
-        import * as THREE from 'three';
-        import { GoogleGenerativeAI } from "@google/generative-ai";
+        import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 
+        // --- THE NEURAL LINK ---
         const API_KEY = "AIzaSyCIAHOM8pqHqkHxxs2YPYUVtYdlqt3_2II"; 
-        const genAI = new GoogleGenerativeAI(API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-        // Simple 3D Sphere for Performance
+        async function askGemini(prompt) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: `You are JARVIS. Answer in short witty Hinglish. Call the user Sir. Question: ${prompt}` }] }]
+                })
+            });
+            const data = await response.json();
+            if (data.error) throw new Error(data.error.message);
+            return data.candidates[0].content.parts[0].text;
+        }
+
+        // --- 3D VISUALS ---
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
-        const sphere = new THREE.Points(new THREE.SphereGeometry(8, 32, 32), new THREE.PointsMaterial({ size: 0.05, color: 0x00d2ff }));
-        scene.add(sphere); camera.position.z = 20;
-        function animate() { requestAnimationFrame(animate); sphere.rotation.y += 0.005; renderer.render(scene, camera); }
+        const visual = new THREE.Points(new THREE.IcosahedronGeometry(8, 2), new THREE.PointsMaterial({ size: 0.1, color: 0x00d2ff }));
+        scene.add(visual); camera.position.z = 20;
+        function animate() { requestAnimationFrame(animate); visual.rotation.y += 0.005; renderer.render(scene, camera); }
         animate();
 
+        // --- BRAIN LOGIC ---
         window.bootJarvis = () => {
             document.getElementById('boot').style.display = 'none';
             const recognition = new (window.webkitSpeechRecognition || window.SpeechRecognition)();
@@ -59,27 +76,29 @@
                 document.getElementById('console').innerText = "> JARVIS: " + txt;
             };
 
-            recognition.onstart = () => document.getElementById('mic-bulb').classList.add('active-mic');
-            recognition.onend = () => recognition.start(); // Keep listening
+            recognition.onstart = () => {
+                document.getElementById('mic-bulb').classList.add('active-mic');
+                document.getElementById('st-text').innerText = "SYSTEM: LISTENING";
+            };
 
             recognition.onresult = async (event) => {
                 const heard = event.results[event.results.length-1][0].transcript.toLowerCase();
                 document.getElementById('console').innerText = "> HEARD: " + heard;
-                document.getElementById('status').innerText = "STATUS: THINKING...";
+                document.getElementById('st-text').innerText = "SYSTEM: THINKING";
 
                 try {
-                    const result = await model.generateContent(heard);
-                    say(result.response.text());
-                    document.getElementById('status').innerText = "STATUS: ONLINE";
+                    const aiResponse = await askGemini(heard);
+                    say(aiResponse);
+                    document.getElementById('st-text').innerText = "SYSTEM: ONLINE";
                 } catch (err) {
-                    // This will tell us the EXACT error
                     document.getElementById('console').innerText = "> ERROR: " + err.message;
-                    say("Sir, the neural link is reporting an error. Check the console text.");
+                    say("Sir, the API key is reporting a restriction. Please check your Google AI Studio project.");
                 }
             };
 
             recognition.start();
-            say("Systems initialized. How can I assist you, Sir?");
+            say("Systems initialized, Sir. I am online and ready.");
+            navigator.getBattery?.().then(b => document.getElementById('bat-text').innerText = `BATT: ${Math.round(b.level*100)}%`);
         };
     </script>
 </body>
