@@ -3,171 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>J.A.R.V.I.S. Mark 85</title>
-    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <title>J.A.R.V.I.S. Omni</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Share Tech Mono', monospace; color: #00d2ff; }
-        #boot { position: absolute; inset: 0; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; cursor: pointer; border: 2px solid #00d2ff; text-align: center; }
-        #hud { position: absolute; top: 20px; left: 20px; z-index: 10; border-left: 2px solid #00d2ff; padding-left: 15px; pointer-events: none; }
-        #console { position: absolute; bottom: 80px; left: 20px; font-size: 13px; color: #fff; background: rgba(0,0,0,0.7); padding: 12px; max-width: 85%; pointer-events: none; border-radius: 5px; border: 1px solid #00d2ff; }
-        #mic-status { position: fixed; bottom: 20px; right: 20px; display: flex; align-items: center; gap: 10px; }
-        #mic-bulb { width: 14px; height: 14px; border-radius: 50%; background: #333; transition: 0.3s; }
-        .active-mic { background: #ff0000 !important; box-shadow: 0 0 15px #ff0000; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: monospace; color: #00d2ff; }
+        #boot { position: absolute; inset: 0; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; cursor: pointer; text-align: center; border: 2px solid #00d2ff; }
+        #hud { position: absolute; top: 20px; left: 20px; border-left: 2px solid #00d2ff; padding-left: 10px; pointer-events: none; }
+        #console { position: absolute; bottom: 100px; left: 20px; background: rgba(0,0,0,0.8); padding: 10px; border: 1px solid #00d2ff; max-width: 80%; font-size: 12px; color: #fff; }
+        #debug { position: absolute; top: 10px; right: 10px; color: #ff0000; font-size: 10px; }
     </style>
 </head>
 <body>
 
     <div id="boot" onclick="bootJarvis()">
-        <div style="border: 2px solid #00d2ff; padding: 40px; border-radius: 50%; font-size: 40px; margin-bottom: 20px;">◎</div>
-        <p>TAP TO INITIALIZE NEURAL LINK</p>
-        <p style="font-size: 10px; opacity: 0.5;">SECURE STARK PROTOCOL 2026</p>
+        <div style="font-size: 50px; margin-bottom: 20px;">◎</div>
+        <p>TAP TO ESTABLISH LINK</p>
     </div>
 
     <div id="hud">
-        <div style="font-size: 26px; letter-spacing: 5px; font-weight: bold;">J.A.R.V.I.S.</div>
-        <div id="st-text">SYSTEM: STANDBY</div>
-        <div id="bat-display">BATTERY: --%</div>
-        <div id="weather-display">ENV: ONLINE</div>
+        <b style="letter-spacing: 3px;">J.A.R.V.I.S.</b>
+        <div id="status">STATUS: STANDBY</div>
     </div>
 
+    <div id="debug"></div>
     <div id="console">> Awaiting Authentication...</div>
 
-    <div id="mic-status">
-        <span id="mic-label">MIC SLEEP</span>
-        <div id="mic-bulb"></div>
-    </div>
-
     <script type="importmap">
-    {
-      "imports": {
-        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-        "@google/generative-ai": "https://esm.run/@google/generative-ai"
-      }
-    }
+    { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "@google/generative-ai": "https://esm.run/@google/generative-ai" } }
     </script>
 
     <script type="module">
         import * as THREE from 'three';
         import { GoogleGenerativeAI } from "@google/generative-ai";
 
-        // --- MASTER KEY ---
-        const GEMINI_KEY = "AIzaSyCIAHOM8pqHqkHxxs2YPYUVtYdlqt3_2II"; 
-        
-        const genAI = new GoogleGenerativeAI(GEMINI_KEY);
-        const aiModel = genAI.getGenerativeModel({ 
+        // --- THE KEY YOU GAVE ME ---
+        const API_KEY = "AIzaSyCIAHOM8pqHqkHxxs2YPYUVtYdlqt3_2II"; 
+        const genAI = new GoogleGenerativeAI(API_KEY);
+        const model = genAI.getGenerativeModel({ 
             model: "gemini-1.5-flash",
-            systemInstruction: "You are JARVIS. Answer in short, witty Hinglish. Address the user as Sir. If asked about status, say systems are optimal.",
-            // PATCH: Threshold set to BLOCK_ONLY_HIGH to prevent 'Interference' errors
-            safetySettings: [
-                { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_ONLY_HIGH" },
-                { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_ONLY_HIGH" },
-                { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_ONLY_HIGH" },
-                { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_ONLY_HIGH" }
-            ]
+            systemInstruction: "You are JARVIS. Answer in short Hinglish. Use 'Sir'."
         });
 
-        // --- 3D ENGINE ---
-        const n = 15000;
+        // 3D Engine (Simplified for Tablet Performance)
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
+        const geo = new THREE.SphereGeometry(8, 32, 32);
+        const mat = new THREE.PointsMaterial({ size: 0.05, color: 0x00d2ff });
+        const sphere = new THREE.Points(geo, mat);
+        scene.add(sphere);
+        camera.position.z = 20;
 
-        const geo = new THREE.BufferGeometry();
-        const posArr = new Float32Array(n * 3);
-        const targetArr = new Float32Array(n * 3);
-        for(let i=0; i<n*3; i++) posArr[i] = (Math.random()-0.5)*80;
-        geo.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
-        const mat = new THREE.PointsMaterial({ size: 0.05, color: 0x00d2ff, blending: THREE.AdditiveBlending });
-        const core = new THREE.Points(geo, mat);
-        scene.add(core);
-        camera.position.z = 25;
-
-        window.morph = (shape) => {
-            const t = targetArr;
-            for (let i = 0; i < n; i++) {
-                if (shape === 'heart') {
-                    const a = Math.random() * 6.28;
-                    t[i*3] = 0.4 * (16 * Math.pow(Math.sin(a), 3));
-                    t[i*3+1] = 0.4 * (13 * Math.cos(a) - 5 * Math.cos(2*a) - 2 * Math.cos(3*a) - Math.cos(4*a));
-                    t[i*3+2] = (Math.random()-0.5)*2;
-                } else {
-                    const phi = Math.acos(-1 + (2 * i) / n), theta = Math.sqrt(n * Math.PI) * phi;
-                    t[i*3] = 8*Math.cos(theta)*Math.sin(phi); t[i*3+1] = 8*Math.sin(theta)*Math.sin(phi); t[i*3+2] = 8*Math.cos(phi);
-                }
-            }
-        };
-
-        window.morph('sphere');
-        function animate() {
-            requestAnimationFrame(animate);
-            const p = geo.attributes.position.array;
-            for (let i = 0; i < n * 3; i++) p[i] += (targetArr[i] - p[i]) * 0.1;
-            geo.attributes.position.needsUpdate = true;
-            core.rotation.y += 0.003;
-            renderer.render(scene, camera);
-        }
+        function animate() { requestAnimationFrame(animate); sphere.rotation.y += 0.005; renderer.render(scene, camera); }
         animate();
 
-        // --- JARVIS AI ---
         window.bootJarvis = () => {
             document.getElementById('boot').style.display = 'none';
-            const synth = window.speechSynthesis;
             const recognition = new (window.webkitSpeechRecognition || window.SpeechRecognition)();
             recognition.lang = 'hi-IN';
             recognition.continuous = true;
 
             const say = (txt) => {
-                synth.cancel();
+                window.speechSynthesis.cancel();
                 const u = new SpeechSynthesisUtterance(txt);
                 u.lang = 'hi-IN'; u.pitch = 0.8;
-                synth.speak(u);
+                window.speechSynthesis.speak(u);
                 document.getElementById('console').innerText = "> JARVIS: " + txt;
             };
 
-            recognition.onstart = () => {
-                document.getElementById('mic-bulb').classList.add('active-mic');
-                document.getElementById('mic-label').innerText = "LISTENING";
-            };
-
-            recognition.onend = () => recognition.start();
-
             recognition.onresult = async (event) => {
-                let heard = event.results[event.results.length-1][0].transcript.toLowerCase().trim();
+                const heard = event.results[event.results.length-1][0].transcript.toLowerCase();
                 document.getElementById('console').innerText = "> HEARD: " + heard;
+                document.getElementById('status').innerText = "STATUS: THINKING...";
 
-                if (heard.match(/(red|dil|heart|लाल)/)) {
-                    window.morph('heart'); mat.color.set(0xff0000);
-                    say("Red alert mode engaged, sir.");
-                } 
-                else if (heard.match(/(stop|chup|बस|चुप)/)) {
-                    synth.cancel();
-                }
-                else if (heard.match(/(reset|sphere|वापस)/)) {
-                    window.morph('sphere'); mat.color.set(0x00d2ff);
-                    say("Restoring sphere configuration.");
-                }
-                else {
-                    document.getElementById('st-text').innerText = "JARVIS: THINKING...";
-                    try {
-                        const result = await aiModel.generateContent(heard);
-                        const response = await result.response;
-                        say(response.text());
-                        document.getElementById('st-text').innerText = "JARVIS: ONLINE";
-                    } catch (e) {
-                        say("Sir, there is a minor glitch in the neural link. Try again.");
-                        console.error(e);
-                    }
+                try {
+                    // THE BRAIN CALL
+                    const result = await model.generateContent(heard);
+                    const response = await result.response;
+                    say(response.text());
+                    document.getElementById('status').innerText = "STATUS: ONLINE";
+                } catch (err) {
+                    // DEBUGGING MODULE
+                    document.getElementById('debug').innerText = "ERROR: " + err.message;
+                    say("Sir, signal interference detected. Check the red error text at the top.");
                 }
             };
 
             recognition.start();
-            say("Systems initialized. Mark eighty-five is ready. Main aapki kya madad kar sakta hoon?");
-            
-            navigator.getBattery?.().then(b => {
-                document.getElementById('bat-display').innerText = `BATTERY: ${Math.round(b.level*100)}%`;
-            });
+            say("Systems online. Ready for your command, Sir.");
         };
     </script>
 </body>
