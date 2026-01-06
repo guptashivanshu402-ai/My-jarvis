@@ -6,10 +6,10 @@
     <title>J.A.R.V.I.S. Omni</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: monospace; color: #00d2ff; }
-        #boot { position: absolute; inset: 0; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; cursor: pointer; text-align: center; border: 2px solid #00d2ff; }
+        #boot { position: absolute; inset: 0; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; cursor: pointer; border: 2px solid #00d2ff; }
         #hud { position: absolute; top: 20px; left: 20px; border-left: 2px solid #00d2ff; padding-left: 10px; pointer-events: none; }
-        #console { position: absolute; bottom: 100px; left: 20px; background: rgba(0,0,0,0.8); padding: 10px; border: 1px solid #00d2ff; max-width: 80%; font-size: 12px; color: #fff; }
-        #debug { position: absolute; top: 10px; right: 10px; color: #ff0000; font-size: 10px; }
+        #console { position: absolute; bottom: 100px; left: 20px; background: rgba(0,0,0,0.8); padding: 10px; border: 1px solid #00d2ff; max-width: 80%; font-size: 12px; }
+        #model-tag { position: absolute; top: 10px; right: 10px; color: #555; font-size: 9px; }
     </style>
 </head>
 <body>
@@ -20,11 +20,11 @@
     </div>
 
     <div id="hud">
-        <b style="letter-spacing: 3px;">J.A.R.V.I.S.</b>
+        <b>J.A.R.V.I.S.</b>
         <div id="status">STATUS: STANDBY</div>
     </div>
 
-    <div id="debug"></div>
+    <div id="model-tag">CORE: DISCONNECTED</div>
     <div id="console">> Awaiting Authentication...</div>
 
     <script type="importmap">
@@ -35,42 +35,50 @@
         import * as THREE from 'three';
         import { GoogleGenerativeAI } from "@google/generative-ai";
 
-        // --- THE KEY YOU GAVE ME ---
         const API_KEY = "AIzaSyCIAHOM8pqHqkHxxs2YPYUVtYdlqt3_2II"; 
         const genAI = new GoogleGenerativeAI(API_KEY);
-        const model = genAI.getGenerativeModel({ 
-            model: "gemini-1.5-flash",
-            systemInstruction: "You are JARVIS. Answer in short Hinglish. Use 'Sir'."
-        });
+        
+        // List of models to try in order of priority
+        const modelList = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-pro"];
+        let activeModel;
 
-        // 3D Engine (Simplified for Tablet Performance)
+        // 3D Visualizer
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
-        const geo = new THREE.SphereGeometry(8, 32, 32);
-        const mat = new THREE.PointsMaterial({ size: 0.05, color: 0x00d2ff });
-        const sphere = new THREE.Points(geo, mat);
-        scene.add(sphere);
-        camera.position.z = 20;
-
+        const sphere = new THREE.Points(new THREE.SphereGeometry(8, 24, 24), new THREE.PointsMaterial({ size: 0.05, color: 0x00d2ff }));
+        scene.add(sphere); camera.position.z = 20;
         function animate() { requestAnimationFrame(animate); sphere.rotation.y += 0.005; renderer.render(scene, camera); }
         animate();
 
-        window.bootJarvis = () => {
+        window.bootJarvis = async () => {
             document.getElementById('boot').style.display = 'none';
+            const synth = window.speechSynthesis;
             const recognition = new (window.webkitSpeechRecognition || window.SpeechRecognition)();
             recognition.lang = 'hi-IN';
             recognition.continuous = true;
 
             const say = (txt) => {
-                window.speechSynthesis.cancel();
+                synth.cancel();
                 const u = new SpeechSynthesisUtterance(txt);
                 u.lang = 'hi-IN'; u.pitch = 0.8;
-                window.speechSynthesis.speak(u);
+                synth.speak(u);
                 document.getElementById('console').innerText = "> JARVIS: " + txt;
             };
+
+            // AUTO-DISCOVERY LOGIC
+            for (let m of modelList) {
+                try {
+                    activeModel = genAI.getGenerativeModel({ model: m });
+                    await activeModel.generateContent("test"); // Fast ping
+                    document.getElementById('model-tag').innerText = "CORE: " + m.toUpperCase();
+                    break; 
+                } catch (e) {
+                    console.log(m + " failed, trying next...");
+                }
+            }
 
             recognition.onresult = async (event) => {
                 const heard = event.results[event.results.length-1][0].transcript.toLowerCase();
@@ -78,20 +86,17 @@
                 document.getElementById('status').innerText = "STATUS: THINKING...";
 
                 try {
-                    // THE BRAIN CALL
-                    const result = await model.generateContent(heard);
-                    const response = await result.response;
-                    say(response.text());
+                    const result = await activeModel.generateContent(heard);
+                    say(result.response.text());
                     document.getElementById('status').innerText = "STATUS: ONLINE";
                 } catch (err) {
-                    // DEBUGGING MODULE
-                    document.getElementById('debug').innerText = "ERROR: " + err.message;
-                    say("Sir, signal interference detected. Check the red error text at the top.");
+                    document.getElementById('status').innerText = "STATUS: ERROR";
+                    say("Sir, the neural link is still unstable. Please check your API project settings.");
                 }
             };
 
             recognition.start();
-            say("Systems online. Ready for your command, Sir.");
+            say("Online and operational, Sir. All cores are synchronized.");
         };
     </script>
 </body>
