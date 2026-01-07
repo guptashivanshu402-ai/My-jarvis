@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>J.A.R.V.I.S. Final</title>
+    <title>J.A.R.V.I.S. Mark 86</title>
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Share Tech Mono', monospace; color: #00d2ff; }
@@ -12,14 +12,14 @@
         #console { position: absolute; bottom: 30px; left: 20px; right: 20px; background: rgba(0,0,0,0.85); padding: 15px; border: 1px solid #00d2ff; font-size: 13px; color: #fff; min-height: 80px; }
         #mic-bulb { position: fixed; bottom: 20px; right: 20px; width: 18px; height: 18px; border-radius: 50%; background: #222; }
         .active-mic { background: #ff0000 !important; box-shadow: 0 0 15px #ff0000 !important; }
-        #log { position: absolute; top: 10px; right: 10px; font-size: 10px; color: #ff3333; }
+        #status-log { position: absolute; top: 10px; right: 10px; font-size: 10px; color: #00d2ff; }
     </style>
 </head>
 <body>
 
     <div id="boot" onclick="bootJarvis()">
         <div style="border: 2px solid #00d2ff; padding: 40px; border-radius: 50%; font-size: 50px; box-shadow: 0 0 30px #00d2ff; margin-bottom: 20px;">◎</div>
-        <b>ACTIVATE NEURAL LINK</b>
+        <b>INITIALIZE SECURE LINK</b>
     </div>
 
     <div id="hud">
@@ -27,24 +27,23 @@
         <div id="st-text">SYSTEM: STANDBY</div>
     </div>
 
-    <div id="log">STARK CORE 86</div>
-    <div id="console">> Systems Ready, Sir...</div>
+    <div id="status-log">CORE: MK-86 SECURE</div>
+    <div id="console">> Awaiting Authentication...</div>
     <div id="mic-bulb"></div>
 
     <script type="module">
         import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 
-        const API_KEY = "AIzaSyBoJX57J3-mTHUySVZIYVXZWcJvMERNZBA"; 
-        let isProcessing = false;
+        // PASTE YOUR NEW KEY HERE
+        const API_KEY = "PASTE_YOUR_NEW_KEY_HERE"; 
 
         async function talkToJarvis(prompt) {
-            // Using 1.5-flash as primary for better free-tier availability
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
             const res = await fetch(url, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: `You are JARVIS. Answer in one short sentence Hinglish. Call me Sir. Prompt: ${prompt}` }] }]
+                    contents: [{ parts: [{ text: `You are JARVIS. Answer in short witty Hinglish. Call me Sir. Response: ${prompt}` }] }]
                 })
             });
             const data = await res.json();
@@ -52,7 +51,7 @@
             return data.candidates[0].content.parts[0].text;
         }
 
-        // --- VISUALS ---
+        // --- 3D VISUALS ---
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -63,8 +62,12 @@
         function animate() { requestAnimationFrame(animate); core.rotation.y += 0.005; renderer.render(scene, camera); }
         animate();
 
-        // --- BRAIN ---
+        // --- BRAIN LOGIC ---
         window.bootJarvis = () => {
+            if (API_KEY === "AIzaSyCOv6dr7tsEka32SN5VbnzcxLAM58OhGzY") {
+                alert("Sir, you must paste the NEW API Key into the code first.");
+                return;
+            }
             document.getElementById('boot').style.display = 'none';
             const synth = window.speechSynthesis;
             const recognition = new (window.webkitSpeechRecognition || window.SpeechRecognition)();
@@ -74,15 +77,8 @@
             const say = (txt) => {
                 synth.cancel();
                 const u = new SpeechSynthesisUtterance(txt); u.lang = 'hi-IN'; u.pitch = 0.9;
-                u.onend = () => { isProcessing = false; startMic(); };
                 synth.speak(u);
                 document.getElementById('console').innerText = "> JARVIS: " + txt;
-            };
-
-            const startMic = () => {
-                if(!isProcessing) {
-                    try { recognition.start(); } catch(e) {}
-                }
             };
 
             recognition.onstart = () => {
@@ -92,11 +88,10 @@
 
             recognition.onend = () => {
                 document.getElementById('mic-bulb').classList.remove('active-mic');
-                if (!isProcessing) setTimeout(startMic, 1000);
+                if (!synth.speaking) recognition.start();
             };
 
             recognition.onresult = async (event) => {
-                isProcessing = true;
                 const heard = event.results[0][0].transcript;
                 document.getElementById('console').innerText = "> HEARD: " + heard;
                 document.getElementById('st-text').innerText = "SYSTEM: THINKING";
@@ -106,14 +101,13 @@
                     say(reply);
                     document.getElementById('st-text').innerText = "SYSTEM: ONLINE";
                 } catch (err) {
-                    document.getElementById('log').innerText = "COOLDOWN ACTIVE";
-                    say("Sir, the neural link is cooling down. Please wait sixty seconds.");
-                    setTimeout(() => { isProcessing = false; document.getElementById('log').innerText = "CORE READY"; }, 60000);
+                    document.getElementById('console').innerText = "> ERROR: " + err.message;
+                    say("Sir, the connection was refused. Please check the new key.");
                 }
             };
 
-            startMic();
-            say("All systems green, Sir. Standing by.");
+            recognition.start();
+            say("New secure link established. I am back online, Sir.");
         };
     </script>
 </body>
